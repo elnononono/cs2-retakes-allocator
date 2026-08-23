@@ -1,4 +1,6 @@
-﻿# CS2 Retakes Allocator
+# THIS REPO IS DEAD. SEE https://github.com/Micka2302/cs2-retakes-allocator-2.0
+ 
+ # CS2 Retakes Allocator
 
 [![Build RetakesAllocator.zip](https://github.com/yonilerner/cs2-retakes-allocator/actions/workflows/build.yml/badge.svg)](https://github.com/yonilerner/cs2-retakes-allocator/actions/workflows/build.yml)
 
