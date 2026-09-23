@@ -75,8 +75,25 @@ public class CustomGameData
         {
             // GiveNamedItem2 failing to load shouldnt crash because we will try to fallback to GiveNamedItem
         }
-        GetCSWeaponDataFromKeyFunc = new(GetCustomGameDataKey("GetCSWeaponDataFromKey"));
-        CCSPlayer_ItemServices_CanAcquireFunc = new(GetCustomGameDataKey("CCSPlayer_ItemServices_CanAcquire"));
+        try
+        {
+            GetCSWeaponDataFromKeyFunc = new(GetCustomGameDataKey("GetCSWeaponDataFromKey"));
+        }
+        catch (Exception ex)
+        {
+            GetCSWeaponDataFromKeyFunc = null;
+            Log.Error($"Failed to load GetCSWeaponDataFromKey: {ex.Message}");
+        }
+
+        try
+        {
+            CCSPlayer_ItemServices_CanAcquireFunc = new(GetCustomGameDataKey("CCSPlayer_ItemServices_CanAcquire"));
+        }
+        catch (Exception ex)
+        {
+            CCSPlayer_ItemServices_CanAcquireFunc = null;
+            Log.Error($"Failed to load CCSPlayer_ItemServices_CanAcquire: {ex.Message}");
+        }
     }
 
     private string GetCustomGameDataKey(string key)

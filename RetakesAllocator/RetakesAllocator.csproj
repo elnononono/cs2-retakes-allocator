@@ -31,6 +31,7 @@
     </Target>
     <ItemGroup>
         <None Update="lang\**\*.*" CopyToOutputDirectory="PreserveNewest" />
+        <None Include="..\Resources\RetakesAllocator_gamedata.json" Link="gamedata\RetakesAllocator_gamedata.json" CopyToOutputDirectory="PreserveNewest" />
     </ItemGroup>
 
 </Project>

@@ -41,6 +41,7 @@ public class RetakesAllocator : BasePlugin
     private CustomGameData? CustomFunctions { get; set; }
 
     private bool IsAllocatingForRound { get; set; }
+    private bool _canAcquireHooked;
     private string _bombsite = "";
     private bool _announceBombsite;
     private bool _bombsiteAnnounceOneTime;
@@ -72,14 +73,18 @@ public class RetakesAllocator : BasePlugin
 
             Server.NextFrame(() =>
             {
-                CustomFunctions ??= new();
                 // Must unhook the old functions before reloading and rehooking
-                CustomFunctions.CCSPlayer_ItemServices_CanAcquireFunc?.Unhook(OnWeaponCanAcquire, HookMode.Pre);
-                CustomFunctions.LoadCustomGameData();
-                if (Configs.GetConfigData().EnableCanAcquireHook)
+                TryUnhookCanAcquire();
+                try
                 {
-                    CustomFunctions.CCSPlayer_ItemServices_CanAcquireFunc?.Hook(OnWeaponCanAcquire, HookMode.Pre);
+                    CustomFunctions ??= new();
+                    CustomFunctions.LoadCustomGameData();
                 }
+                catch (Exception e)
+                {
+                    Log.Error($"Failed to reload custom game data: {e.Message}");
+                }
+                TryHookCanAcquire();
             });
 
         });
@@ -96,12 +101,17 @@ public class RetakesAllocator : BasePlugin
             Queries.Migrate();
         }
 
-        CustomFunctions = new();
-
-        if (Configs.GetConfigData().EnableCanAcquireHook)
+        try
         {
-            CustomFunctions.CCSPlayer_ItemServices_CanAcquireFunc?.Hook(OnWeaponCanAcquire, HookMode.Pre);
+            CustomFunctions = new();
         }
+        catch (Exception e)
+        {
+            // A broken signature must not abort Load, or the plugin is left half-registered
+            Log.Error($"Failed to load custom game data: {e.Message}");
+        }
+
+        TryHookCanAcquire();
 
         if (hotReload)
         {
@@ -141,10 +151,51 @@ public class RetakesAllocator : BasePlugin
 
         GetRetakesPluginEventSender().RetakesPluginEventHandlers -= RetakesEventHandler;
 
-        if (Configs.GetConfigData().EnableCanAcquireHook && CustomFunctions != null)
+        TryUnhookCanAcquire();
+    }
+
+    private void TryHookCanAcquire()
+    {
+        if (!Configs.GetConfigData().EnableCanAcquireHook || _canAcquireHooked)
         {
-            CustomFunctions.CCSPlayer_ItemServices_CanAcquireFunc?.Unhook(OnWeaponCanAcquire, HookMode.Pre);
+            return;
         }
+
+        var func = CustomFunctions?.CCSPlayer_ItemServices_CanAcquireFunc;
+        if (func == null)
+        {
+            Log.Error("CCSPlayer_ItemServices_CanAcquire not available, CanAcquire hook disabled.");
+            return;
+        }
+
+        try
+        {
+            func.Hook(OnWeaponCanAcquire, HookMode.Pre);
+            _canAcquireHooked = true;
+        }
+        catch (Exception e)
+        {
+            Log.Error($"Failed to hook CCSPlayer_ItemServices_CanAcquire (outdated signature?): {e.Message}");
+        }
+    }
+
+    private void TryUnhookCanAcquire()
+    {
+        if (!_canAcquireHooked)
+        {
+            return;
+        }
+
+        try
+        {
+            CustomFunctions?.CCSPlayer_ItemServices_CanAcquireFunc?.Unhook(OnWeaponCanAcquire, HookMode.Pre);
+        }
+        catch (Exception e)
+        {
+            Log.Error($"Failed to unhook CCSPlayer_ItemServices_CanAcquire: {e.Message}");
+        }
+
+        _canAcquireHooked = false;
     }
 
     private IRetakesPluginEventSender GetRetakesPluginEventSender()
